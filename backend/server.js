@@ -10,30 +10,39 @@ app.use(bodyParser.json());
 
 // PostgreSQL client
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // Heroku will set this automatically
+  connectionString: process.env.DATABASE_URL, // Heroku or Render will set this automatically
 });
 
 // Create post
 app.post('/post', async (req, res) => {
   const { content, board } = req.body;
-
-  // Store post in the database
-  const newPost = await pool.query(
-    'INSERT INTO posts (content, board) VALUES ($1, $2) RETURNING *',
-    [content, board]
-  );
   
-  res.status(201).json(newPost.rows[0]);
+  try {
+    const newPost = await pool.query(
+      'INSERT INTO posts (content, board) VALUES ($1, $2) RETURNING *',
+      [content, board]
+    );
+    res.status(201).json(newPost.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
 });
 
 // Get posts by board
 app.get('/board/:board', async (req, res) => {
   const { board } = req.params;
 
-  // Fetch posts by board
-  const posts = await pool.query('SELECT * FROM posts WHERE board = $1 ORDER BY created_at DESC', [board]);
-
-  res.json(posts.rows);
+  try {
+    const posts = await pool.query(
+      'SELECT * FROM posts WHERE board = $1 ORDER BY created_at DESC',
+      [board]
+    );
+    res.json(posts.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
 });
 
 // Start server
